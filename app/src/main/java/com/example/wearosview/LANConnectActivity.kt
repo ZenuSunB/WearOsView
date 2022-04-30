@@ -15,7 +15,7 @@ import com.example.wearosview.socketconnect.Command.CommandReceiver
 import com.example.wearosview.socketconnect.Device
 import com.example.wearosview.socketconnect.Communication.DeviceSearchResponser
 
-class ConnectActivity : Activity() {
+class LANConnectActivity : Activity() {
     private lateinit var binding: ActivityConnectBinding
     private lateinit var btnReturn: BackArrowView
     private lateinit var connnectBtn: Button
