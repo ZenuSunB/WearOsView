@@ -15,9 +15,12 @@ import android.widget.ImageView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.wearosview.bluetoochconnect.BluetoothMesg
+import com.example.wearosview.bluetoochconnect.BluetoothMesgReceiver
 import com.example.wearosview.bluetoochconnect.ConnectBroadcastReceiver
 import com.example.wearosview.databinding.ActivityConnectBinding
 import com.example.wearosview.layoutImpliment.BackArrowView
+import com.example.wearosview.socketconnect.Command.CommandReceiver
 
 
 class BluetoothConnectActivity : Activity() {
@@ -51,15 +54,32 @@ class BluetoothConnectActivity : Activity() {
         btnReturn?.setOnClickListener {
             finish()
         }
-
-        registerConnectBroadcast()
+        BluetoothMesg.setBluetoothAdapter(mAdapter)
+        BluetoothMesgReceiver.start(object:BluetoothMesgReceiver.BluetoothMesgReceiverListener{
+            override fun onMesgReceiver(meg: String?,device: BluetoothDevice) {
+                when(meg)
+                {
+                    "startSendHeatBeatRatio"->
+                    {
+                        val intent = Intent(baseContext, BluetoothMainActivity::class.java)
+                        var hostDevice:BluetoothDevice =device;
+                        BluetoothMesg.setBluetoothDevice(hostDevice)
+                        intent.putExtra("hostDevice", hostDevice)
+                        BluetoothMesgReceiver.close()
+                        isListeningOpen = false
+                        connnectBtn.setText("开始监听")
+                        startActivity(intent)
+                    }
+                }
+            }
+        })
         connnectBtn?.setOnClickListener {
             if(isListeningOpen)
             {
                 mark.setImageDrawable(resources.getDrawable(R.drawable.image_bg2))
                 isListeningOpen=false
                 connnectBtn.setText("打开监听")
-//                application.unregisterReceiver(connectBroadcastReceiver);
+                BluetoothMesgReceiver.close()
                 Toast.makeText(this, "已经关闭监听", Toast.LENGTH_SHORT).show()
             }
             else{
@@ -68,6 +88,7 @@ class BluetoothConnectActivity : Activity() {
                     discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
                     startActivity(discoverableIntent);
                 }
+                BluetoothMesgReceiver.open()
                 isListeningOpen=true
                 connnectBtn.setText("关闭应答")
                 Toast.makeText(baseContext, "已经打开监听程序！", Toast.LENGTH_SHORT).show()
@@ -78,6 +99,7 @@ class BluetoothConnectActivity : Activity() {
     override fun onResume()
     {
         super.onResume()
+        registerConnectBroadcast()
 //        mark.setImageDrawable(resources.getDrawable(R.drawable.image_bg2))
     }
 
@@ -151,7 +173,6 @@ class BluetoothConnectActivity : Activity() {
     override fun onStop() {
         super.onStop()
         mark.setImageDrawable(resources.getDrawable(R.drawable.image_bg2))
-        unregisterReceiver(connectBroadcastReceiver);
         isListeningOpen=false
     }
 
@@ -163,6 +184,9 @@ class BluetoothConnectActivity : Activity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        unregisterReceiver(connectBroadcastReceiver);
+        connectBroadcastReceiver=null
+
     }
 
 }
