@@ -3,6 +3,7 @@ package com.example.wearosview
 import android.app.Activity
 import android.bluetooth.BluetoothDevice
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -14,6 +15,7 @@ import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.wearosview.bluetoochconnect.BluetoothMesg
+import com.example.wearosview.bluetoochconnect.BluetoothMesgReceiver
 import com.example.wearosview.bluetoochconnect.BluetoothMesgSender
 import com.example.wearosview.databinding.ActivityMainBinding
 import com.example.wearosview.socketconnect.Device
@@ -23,12 +25,11 @@ import java.util.*
 
 class BluetoothMainActivity  : Activity() {
     @Volatile
-    var heart_beat_ratio=0f;
+    var heart_beat_ratio=100f;
     private lateinit var sensorManager: SensorManager
     private lateinit var binding: ActivityMainBinding
     private lateinit var textView: TextView
     private lateinit var heartBeatSensor: Sensor
-    public var mainHost: BluetoothDevice?=null
     @Volatile
     private var isAlive:Boolean=true
     //定时器设置
@@ -39,9 +40,8 @@ class BluetoothMainActivity  : Activity() {
             try {
                 if (!isAlive)
                     cancel()
-                mainHost?.let {
-                    sendBluetoothMesg(it,heart_beat_ratio.toString())
-                }
+                sendBluetoothMesg(heart_beat_ratio.toString())
+
             }
             catch (e:Throwable)
             {
@@ -49,8 +49,6 @@ class BluetoothMainActivity  : Activity() {
             }
         }
     }
-
-
     private var heartBeatSensorlistener: SensorEventListener =
         object : SensorEventListener {
             override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
@@ -60,12 +58,11 @@ class BluetoothMainActivity  : Activity() {
                     textView.setText(it.values[0].toString())
                     heart_beat_ratio=it.values[0]
                 }
-
             } }
-    fun sendBluetoothMesg(device: BluetoothDevice, str:String) {
-        //发送命令
+
+    fun sendBluetoothMesg(str:String) {
         val bluetoothMesg = BluetoothMesg(str.toByteArray())
-        BluetoothMesg.setBluetoothDevice(device)
+        BluetoothMesg.setBluetoothDevice(BluetoothMesg.getBluetoothDevice())
         BluetoothMesgSender.addBluetoothMesg(bluetoothMesg)
     }
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,9 +79,6 @@ class BluetoothMainActivity  : Activity() {
         else {
 //         Permission has already been granted
         }
-        var bundle=intent.getExtras()
-        mainHost = bundle!!.get("hostDevice") as BluetoothDevice
-        println("++++++++++++"+mainHost?.name)
 
         textView=findViewById(R.id.heartBeatRatio)
         sensorManager=getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -93,8 +87,24 @@ class BluetoothMainActivity  : Activity() {
         heartBeatSensor?.let {
             sensorManager.registerListener(heartBeatSensorlistener,it, SensorManager.SENSOR_DELAY_FASTEST)
         }
-        NewWearMesgGenerator = Timer()
-        NewWearMesgGenerator?.schedule(timerTask,500,100)
+        BluetoothMesgReceiver.start(object: BluetoothMesgReceiver.BluetoothMesgReceiverListener{
+            override fun onMesgReceiver(meg: String?,device: BluetoothDevice) {
+                when(meg)
+                {
+                    "startSendHeatBeatRatio"->
+                    {
+                        NewWearMesgGenerator = Timer()
+                        NewWearMesgGenerator?.schedule(timerTask,500,100)
+                    }
+                    "finish"->
+                    {
+                        BluetoothMesgReceiver.close()
+                        finish()
+                    }
+                }
+            }
+        })
+
 
     }
     override fun onResume()

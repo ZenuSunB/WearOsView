@@ -39,7 +39,6 @@ public class BluetoothMesgReceiver {
                     BluetoothServerSocket serverSocket = BluetoothMesg.getBluetoothAdapter().listenUsingRfcommWithServiceRecord("serverSocket", uuid);
                     while(isOpen){
                         BluetoothSocket socket = serverSocket.accept();
-
                         threadPool.execute(new BluetoothMesgRunnable(socket));
                     }
                 }catch (SecurityException e)
