@@ -3,7 +3,6 @@ package com.example.wearosview
 import android.app.Activity
 import android.bluetooth.BluetoothDevice
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -11,6 +10,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
 import android.view.WindowManager
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -18,9 +18,8 @@ import com.example.wearosview.bluetoochconnect.BluetoothMesg
 import com.example.wearosview.bluetoochconnect.BluetoothMesgReceiver
 import com.example.wearosview.bluetoochconnect.BluetoothMesgSender
 import com.example.wearosview.databinding.ActivityMainBinding
-import com.example.wearosview.socketconnect.Device
-import com.example.wearosview.socketconnect.WearMesg.WearMesgSender
-import com.example.wearosview.socketconnect.WearMesg.WearMessage
+import java.lang.Math.abs
+import java.sql.Time
 import java.util.*
 
 class BluetoothMainActivity  : Activity() {
@@ -30,7 +29,11 @@ class BluetoothMainActivity  : Activity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var textView: TextView
     private lateinit var heartBeatSensor: Sensor
-    @Volatile
+    private lateinit var mark:ImageView
+    private lateinit var heart:ImageView
+    var clickTimes=0;
+    var lastTouchTime:Long=0;
+
     private var isAlive:Boolean=true
     //定时器设置
     private var NewWearMesgGenerator: Timer?=null
@@ -69,7 +72,9 @@ class BluetoothMainActivity  : Activity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        NewWearMesgGenerator = Timer()
+        NewWearMesgGenerator?.schedule(timerTask,500,500)
+//        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.BODY_SENSORS)
             != PackageManager.PERMISSION_GRANTED) {
             // Permission is not granted
@@ -81,30 +86,48 @@ class BluetoothMainActivity  : Activity() {
         }
 
         textView=findViewById(R.id.heartBeatRatio)
+        mark=findViewById(R.id.mark)
+        heart=findViewById(R.id.heart)
         sensorManager=getSystemService(Context.SENSOR_SERVICE) as SensorManager
         heartBeatSensor=sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE)
+        heart?.setOnClickListener {
 
+            if(abs(System.currentTimeMillis()-lastTouchTime)<=200)
+            {
+                if(++clickTimes>=2)
+                {
+                    finish()
+                }
+            }
+            else
+            {
+                clickTimes=0;
+            }
+            lastTouchTime=System.currentTimeMillis()
+
+        }
         heartBeatSensor?.let {
             sensorManager.registerListener(heartBeatSensorlistener,it, SensorManager.SENSOR_DELAY_FASTEST)
         }
+
         BluetoothMesgReceiver.start(object: BluetoothMesgReceiver.BluetoothMesgReceiverListener{
             override fun onMesgReceiver(meg: String?,device: BluetoothDevice) {
                 when(meg)
                 {
-                    "startSendHeatBeatRatio"->
+                    "startSendHeartBeatRatio"->
                     {
-                        NewWearMesgGenerator = Timer()
-                        NewWearMesgGenerator?.schedule(timerTask,500,100)
+                        mark.setImageDrawable(resources.getDrawable(R.drawable.image_bg3))
+
                     }
                     "finish"->
                     {
+                        mark.setImageDrawable(resources.getDrawable(R.drawable.image_bg4))
                         BluetoothMesgReceiver.close()
                         finish()
                     }
                 }
             }
         })
-
 
     }
     override fun onResume()

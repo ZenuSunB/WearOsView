@@ -11,6 +11,7 @@ import com.example.wearosview.socketconnect.CommunicationKey;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.UUID;
 import java.util.concurrent.RejectedExecutionException;
@@ -32,24 +33,31 @@ public class BluetoothMesgReceiver {
     public static void start(BluetoothMesgReceiverListener mlistener){
         listener=mlistener;
         isOpen = true;
-        threadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    BluetoothServerSocket serverSocket = BluetoothMesg.getBluetoothAdapter().listenUsingRfcommWithServiceRecord("serverSocket", uuid);
-                    while(isOpen){
-                        BluetoothSocket socket = serverSocket.accept();
-                        threadPool.execute(new BluetoothMesgRunnable(socket));
+        try {
+            threadPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        BluetoothServerSocket serverSocket = BluetoothMesg.getBluetoothAdapter().listenUsingRfcommWithServiceRecord("serverSocket", uuid);
+                        while (isOpen) {
+                            BluetoothSocket socket = serverSocket.accept();
+                            threadPool.execute(new BluetoothMesgRunnable(socket));
+                        }
+                    } catch (SecurityException e) {
+                        e.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                }catch (SecurityException e)
-                {
-                    e.printStackTrace();
                 }
-                catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+            });
+        }catch (SecurityException e)
+        {
+            e.printStackTrace();
+        }
+        catch (Throwable e)
+        {
+            e.printStackTrace();
+        }
     }
     public static void open(){
         isOpen = true;
@@ -72,7 +80,7 @@ public class BluetoothMesgReceiver {
         @Override
         public void run() {
             try {
-                DataInputStream is = new DataInputStream(socket.getInputStream());
+                InputStream is =socket.getInputStream();
                 byte[] bytes = new byte[1024];
                 int i=0;
                 while(true){

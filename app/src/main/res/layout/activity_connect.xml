@@ -23,7 +23,7 @@
             android:id="@+id/mark"
             android:layout_width="10dp"
             android:layout_height="10dp"
-            android:src="@drawable/menu_bg"
+            android:src="@drawable/image_bg2"
             android:layout_marginRight="10dp"
             android:layout_marginTop="10dp"
             android:layout_gravity="right"

@@ -1,6 +1,7 @@
 package com.example.wearosview.bluetoochconnect;
 
 import android.bluetooth.BluetoothSocket;
+import android.os.SystemClock;
 import android.util.Log;
 
 import com.example.wearosview.socketconnect.Command.SendCommandThreadFactory;
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class BluetoothMesgSender {
     static UUID uuid=UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static ThreadPoolExecutor threadPool =
-            new ThreadPoolExecutor(2, 2, 1,
+            new ThreadPoolExecutor(3, 4, 60,
                     TimeUnit.SECONDS, new SynchronousQueue<Runnable>(), new SendCommandThreadFactory(),
                     new RejectedExecutionHandler() {
                         @Override
@@ -59,11 +60,17 @@ public class BluetoothMesgSender {
                 e.printStackTrace();
             }catch (SecurityException e){
                 e.printStackTrace();
+            }catch (NullPointerException e) {
+                e.printStackTrace();
             }
             finally {
                 try {
+//                    SystemClock.sleep(500);
                     socket.close();
                 } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                catch (NullPointerException e) {
                     e.printStackTrace();
                 }
             }
